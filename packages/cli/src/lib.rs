@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 pub mod transformers;
+pub mod wizard;
 
 pub fn collect_scannable_files(dir_path: &Path) -> Vec<PathBuf> {
     let mut files: Vec<PathBuf> = walkdir::WalkDir::new(dir_path)
