@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
+
+import { keccak256 as ethersKeccak256 } from "ethers";
 
 function keccak256(hex: string): string {
-  const buf = Buffer.from(hex.slice(2), 'hex');
-  const crypto = require('crypto');
-  return '0x' + crypto.createHash('keccak256').update(buf).digest('hex');
+  return ethersKeccak256(hex);
 }
 
 function computeMerkleRoot(leaf: string, proof: string[]): string {
@@ -18,45 +18,39 @@ function computeMerkleRoot(leaf: string, proof: string[]): string {
   return computed;
 }
 
-describe('YulMerkleVerifier', () => {
-  describe('verifyProof', () => {
-    it('returns true for a valid single-element proof', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const sibling = '0x' + 'cd'.repeat(32);
+describe("YulMerkleVerifier", () => {
+  describe("verifyProof", () => {
+    it("returns true for a valid single-element proof", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const sibling = "0x" + "cd".repeat(32);
       const root = computeMerkleRoot(leaf, [sibling]);
 
-      expect(
-        verifyProofSolidity(root, leaf, [sibling]),
-      ).toBe(true);
+      expect(verifyProofSolidity(root, leaf, [sibling])).toBe(true);
     });
 
-    it('returns false for an invalid leaf', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const wrongLeaf = '0x' + 'ef'.repeat(32);
-      const sibling = '0x' + 'cd'.repeat(32);
+    it("returns false for an invalid leaf", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const wrongLeaf = "0x" + "ef".repeat(32);
+      const sibling = "0x" + "cd".repeat(32);
       const root = computeMerkleRoot(leaf, [sibling]);
 
-      expect(
-        verifyProofSolidity(root, wrongLeaf, [sibling]),
-      ).toBe(false);
+      expect(verifyProofSolidity(root, wrongLeaf, [sibling])).toBe(false);
     });
 
-    it('returns false for an invalid proof path', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const sibling1 = '0x' + 'cd'.repeat(32);
-      const sibling2 = '0x' + '12'.repeat(32);
+    it("returns false for an invalid proof path", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const sibling1 = "0x" + "cd".repeat(32);
+      const sibling2 = "0x" + "12".repeat(32);
       const root = computeMerkleRoot(leaf, [sibling1]);
 
-      expect(
-        verifyProofSolidity(root, leaf, [sibling1, sibling2]),
-      ).toBe(false);
+      expect(verifyProofSolidity(root, leaf, [sibling1, sibling2])).toBe(false);
     });
 
-    it('returns true for a valid three-element proof', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const sibling1 = '0x' + 'cd'.repeat(32);
-      const sibling2 = '0x' + 'ef'.repeat(32);
-      const sibling3 = '0x' + '01'.repeat(32);
+    it("returns true for a valid three-element proof", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const sibling1 = "0x" + "cd".repeat(32);
+      const sibling2 = "0x" + "ef".repeat(32);
+      const sibling3 = "0x" + "01".repeat(32);
       const root = computeMerkleRoot(leaf, [sibling1, sibling2, sibling3]);
 
       expect(
@@ -64,63 +58,53 @@ describe('YulMerkleVerifier', () => {
       ).toBe(true);
     });
 
-    it('returns true when leaf equals root (empty proof)', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
+    it("returns true when leaf equals root (empty proof)", () => {
+      const leaf = "0x" + "ab".repeat(32);
 
       expect(verifyProofSolidity(leaf, leaf, [])).toBe(true);
     });
 
-    it('returns false for an empty proof with mismatched leaf and root', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const root = '0x' + 'cd'.repeat(32);
+    it("returns false for an empty proof with mismatched leaf and root", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const root = "0x" + "cd".repeat(32);
 
       expect(verifyProofSolidity(root, leaf, [])).toBe(false);
     });
 
-    it('handles proof elements in any order (canonical sorting)', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const sibling = '0x' + 'cd'.repeat(32);
+    it("handles proof elements in any order (canonical sorting)", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const sibling = "0x" + "cd".repeat(32);
       const root = computeMerkleRoot(leaf, [sibling]);
 
-      expect(
-        verifyProofSolidity(root, leaf, [sibling]),
-      ).toBe(true);
+      expect(verifyProofSolidity(root, leaf, [sibling])).toBe(true);
     });
   });
 
-  describe('verifyProofOrdered', () => {
-    it('returns true for a valid proof with correct ordering', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const sibling = '0x' + 'cd'.repeat(32);
+  describe("verifyProofOrdered", () => {
+    it("returns true for a valid proof with correct ordering", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const sibling = "0x" + "cd".repeat(32);
       const root = computeMerkleRoot(leaf, [sibling]);
 
-      expect(
-        verifyProofOrderedSolidity(root, leaf, [sibling]),
-      ).toBe(true);
+      expect(verifyProofOrderedSolidity(root, leaf, [sibling])).toBe(true);
     });
 
-    it('returns false when proof elements are in wrong order', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const sibling = '0x' + 'cd'.repeat(32);
+    it("returns false when proof elements are in wrong order", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const sibling = "0x" + "cd".repeat(32);
       const root = computeMerkleRoot(leaf, [sibling]);
 
-      expect(
-        verifyProofOrderedSolidity(root, leaf, [sibling]),
-      ).toBe(true);
+      expect(verifyProofOrderedSolidity(root, leaf, [sibling])).toBe(true);
     });
   });
 
-  describe('gas efficiency', () => {
-    it('uses constant scratch memory (no allocation per proof step)', () => {
-      const leaf = '0x' + 'ab'.repeat(32);
-      const proof = Array.from({ length: 10 }, () =>
-        '0x' + 'cd'.repeat(32),
-      );
+  describe("gas efficiency", () => {
+    it("uses constant scratch memory (no allocation per proof step)", () => {
+      const leaf = "0x" + "ab".repeat(32);
+      const proof = Array.from({ length: 10 }, () => "0x" + "cd".repeat(32));
       const root = computeMerkleRoot(leaf, proof);
 
-      expect(
-        verifyProofSolidity(root, leaf, proof),
-      ).toBe(true);
+      expect(verifyProofSolidity(root, leaf, proof)).toBe(true);
     });
   });
 });

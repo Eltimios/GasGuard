@@ -56,8 +56,7 @@
       "@gas-evaluator/*": ["libs/gas-evaluator/src/*"]
     }
   },
-  "include": ["apps/**/*", "libs/**/*", "packages/**/*", "src/**/*"],
-  "include": ["apps/**/*", "libs/**/*", "packages/**/*", "rules/**/*", "src/rules/**/*"],
+  "include": ["apps/**/*", "libs/**/*", "packages/**/*", "src/**/*", "rules/**/*", "src/rules/**/*"],
   "exclude": [
     "node_modules",
     "dist",
