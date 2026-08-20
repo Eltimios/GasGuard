@@ -3,11 +3,11 @@
  * Issue #630
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('UserAccountStruct Storage Packing', () => {
-  describe('struct field sizing', () => {
-    it('should calculate total bytes per slot correctly', () => {
+describe("UserAccountStruct Storage Packing", () => {
+  describe("struct field sizing", () => {
+    it("should calculate total bytes per slot correctly", () => {
       // Slot 1: wallet (20) + lastActivity (8) + loginCount (4) = 32 bytes
       const walletBytes = 20;
       const lastActivityBytes = 8;
@@ -17,7 +17,7 @@ describe('UserAccountStruct Storage Packing', () => {
       expect(totalSlot1).toBe(32);
     });
 
-    it('should fit tier + isActive in same slot', () => {
+    it("should fit tier + isActive in same slot", () => {
       // Slot 2: tier (1) + isActive (1) = 2 bytes (30 bytes padding)
       const tierBytes = 1;
       const isActiveBytes = 1;
@@ -26,7 +26,7 @@ describe('UserAccountStruct Storage Packing', () => {
       expect(totalSlot2).toBeLessThanOrEqual(32);
     });
 
-    it('should pack admin fields into single slot', () => {
+    it("should pack admin fields into single slot", () => {
       // adminAddress (20) + adminExpiry (8) + adminNonce (4) = 32 bytes
       const adminAddressBytes = 20;
       const adminExpiryBytes = 8;
@@ -37,8 +37,8 @@ describe('UserAccountStruct Storage Packing', () => {
     });
   });
 
-  describe('slot calculation', () => {
-    it('should compute correct slot offset for packed fields', () => {
+  describe("slot calculation", () => {
+    it("should compute correct slot offset for packed fields", () => {
       const baseSlot = 0;
       const walletOffset = 0;
       const lastActivityOffset = 20;
@@ -50,15 +50,15 @@ describe('UserAccountStruct Storage Packing', () => {
       expect(loginCountOffset).toBe(28);
     });
 
-    it('should compute tier slot as baseSlot + 1', () => {
+    it("should compute tier slot as baseSlot + 1", () => {
       const baseSlot = 0;
       const tierSlot = baseSlot + 1;
       expect(tierSlot).toBe(1);
     });
   });
 
-  describe('gas savings estimate', () => {
-    it('should save slots vs naive packing', () => {
+  describe("gas savings estimate", () => {
+    it("should save slots vs naive packing", () => {
       // Naive: 6 fields = 6 slots
       // Packed: 3 slots (balance + packed1 + packed2)
       const naiveSlots = 6;

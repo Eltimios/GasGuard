@@ -8,7 +8,7 @@ describe("AdaptiveReentrancyGuard", () => {
 
     before(async () => {
       const factory: ContractFactory = await ethers.getContractFactory(
-        "AdaptiveReentrancyGuardMock"
+        "AdaptiveReentrancyGuardMock",
       );
       mock = await factory.deploy(true);
       await mock.waitForDeployment();
@@ -33,7 +33,7 @@ describe("AdaptiveReentrancyGuard", () => {
 
     before(async () => {
       const factory: ContractFactory = await ethers.getContractFactory(
-        "AdaptiveReentrancyGuardMock"
+        "AdaptiveReentrancyGuardMock",
       );
       mock = await factory.deploy(false);
       await mock.waitForDeployment();
@@ -46,7 +46,7 @@ describe("AdaptiveReentrancyGuard", () => {
     it("should reject reentrant call with custom error", async () => {
       await expect(mock.reenter()).to.be.revertedWithCustomError(
         mock,
-        "ReentrantCall"
+        "ReentrantCall",
       );
     });
 
@@ -59,13 +59,13 @@ describe("AdaptiveReentrancyGuard", () => {
   describe("gas comparison", () => {
     it("should be more gas efficient in transient mode than storage mode", async () => {
       const transientFactory: ContractFactory = await ethers.getContractFactory(
-        "AdaptiveReentrancyGuardMock"
+        "AdaptiveReentrancyGuardMock",
       );
       const transientMock: Contract = await transientFactory.deploy(true);
       await transientMock.waitForDeployment();
 
       const storageFactory: ContractFactory = await ethers.getContractFactory(
-        "AdaptiveReentrancyGuardMock"
+        "AdaptiveReentrancyGuardMock",
       );
       const storageMock: Contract = await storageFactory.deploy(false);
       await storageMock.waitForDeployment();

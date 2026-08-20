@@ -10,8 +10,11 @@ interface PackedEntry {
 function packEntries(entries: PackedEntry[]): string {
   return ethers.concat(
     entries.map((entry) =>
-      ethers.solidityPacked(["address", "uint96"], [entry.recipient, entry.amount])
-    )
+      ethers.solidityPacked(
+        ["address", "uint96"],
+        [entry.recipient, entry.amount],
+      ),
+    ),
   );
 }
 
@@ -19,7 +22,7 @@ function abiEncodeEntries(entries: PackedEntry[]): string {
   const coder = ethers.AbiCoder.defaultAbiCoder();
   return coder.encode(
     ["tuple(address recipient, uint96 amount)[]"],
-    [entries.map((e) => [e.recipient, e.amount])]
+    [entries.map((e) => [e.recipient, e.amount])],
   );
 }
 
@@ -58,7 +61,9 @@ describe("CalldataUnpacker", function () {
         .withArgs(entries[0].recipient, entries[0].amount);
 
       for (const entry of entries) {
-        expect(await unpacker.totalReceived(entry.recipient)).to.equal(entry.amount);
+        expect(await unpacker.totalReceived(entry.recipient)).to.equal(
+          entry.amount,
+        );
       }
     });
 
@@ -70,16 +75,15 @@ describe("CalldataUnpacker", function () {
 
     it("reverts when the payload length is not a multiple of 32 bytes", async function () {
       const malformed = ethers.concat([packEntries(entries), "0x00"]);
-      await expect(unpacker.unpackBatch(malformed)).to.be.revertedWithCustomError(
-        unpacker,
-        "InvalidPayloadLength"
-      );
+      await expect(
+        unpacker.unpackBatch(malformed),
+      ).to.be.revertedWithCustomError(unpacker, "InvalidPayloadLength");
     });
 
     it("reverts on an empty payload", async function () {
       await expect(unpacker.unpackBatch("0x")).to.be.revertedWithCustomError(
         unpacker,
-        "InvalidPayloadLength"
+        "InvalidPayloadLength",
       );
     });
   });
@@ -89,7 +93,9 @@ describe("CalldataUnpacker", function () {
       const packedPayload = packEntries(entries);
       const abiPayload = abiEncodeEntries(entries);
 
-      const packedReceipt = await (await unpacker.unpackBatch(packedPayload)).wait();
+      const packedReceipt = await (
+        await unpacker.unpackBatch(packedPayload)
+      ).wait();
 
       // Fresh contract so totals/state don't carry over between the two paths.
       const Unpacker = await ethers.getContractFactory("CalldataUnpacker");
@@ -103,8 +109,12 @@ describe("CalldataUnpacker", function () {
       const abiGas = Number(abiReceipt.gasUsed);
       const savingsPerItem = (abiGas - packedGas) / entries.length;
 
-      console.log(`      packed calldata bytes: ${(packedPayload.length - 2) / 2}`);
-      console.log(`      abi.decode calldata bytes: ${(abiPayload.length - 2) / 2}`);
+      console.log(
+        `      packed calldata bytes: ${(packedPayload.length - 2) / 2}`,
+      );
+      console.log(
+        `      abi.decode calldata bytes: ${(abiPayload.length - 2) / 2}`,
+      );
       console.log(`      unpackBatch gas: ${packedGas}`);
       console.log(`      abi.decode baseline gas: ${abiGas}`);
       console.log(`      gas saved per item: ${savingsPerItem}`);

@@ -45,7 +45,7 @@ describe("YulArrayUtils", function () {
     it("reverts on an out-of-bounds index", async function () {
       await expect(harness.removeNumberAt(99)).to.be.revertedWithCustomError(
         harness,
-        "IndexOutOfBounds"
+        "IndexOutOfBounds",
       );
     });
   });
