@@ -36,10 +36,18 @@ describe("DirectIndexRouter", function () {
   });
 
   describe("index-based fallback dispatch", function () {
-    async function callRoute(index: number, userAddr: string, amount: bigint = 0n): Promise<any> {
+    async function callRoute(
+      index: number,
+      userAddr: string,
+      amount: bigint = 0n,
+    ): Promise<any> {
       const userPadded = ethers.zeroPadValue(userAddr, 32);
       const amountPadded = ethers.zeroPadValue(ethers.toBeHex(amount), 32);
-      const calldata = ethers.concat([ethers.zeroPadValue(ethers.toBeHex(index), 1), userPadded, amountPadded]);
+      const calldata = ethers.concat([
+        ethers.zeroPadValue(ethers.toBeHex(index), 1),
+        userPadded,
+        amountPadded,
+      ]);
       return router.route({ data: calldata });
     }
 
@@ -61,16 +69,17 @@ describe("DirectIndexRouter", function () {
     });
 
     it("should revert on unknown index", async function () {
-      await expect(
-        callRoute(0xFF, user.address)
-      ).to.be.revertedWithCustomError(router, "InvalidIndex");
+      await expect(callRoute(0xff, user.address)).to.be.revertedWithCustomError(
+        router,
+        "InvalidIndex",
+      );
     });
   });
 
   describe("gas savings vs selector dispatch", function () {
     it("should use fewer comparisons than 4-byte selector dispatch", function () {
       const selectorComparisons = 3; // 4 functions = up to 3 eq/jumpi checks
-      const indexComparisons = 1;     // single byte comparison per candidate
+      const indexComparisons = 1; // single byte comparison per candidate
       const gasPerComparison = 3;
 
       const selectorGas = selectorComparisons * gasPerComparison;

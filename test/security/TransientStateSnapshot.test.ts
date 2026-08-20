@@ -23,13 +23,16 @@ describe("TransientStateSnapshot", () => {
       await mock.setSlot(SLOT_A, VALUE_A);
       expect(await mock.readSlot(SLOT_A)).to.equal(VALUE_A);
 
-      await mock.snapshotAndRollbackSlot(SLOT_A, ethers.id("new_value").padEnd(66, "0"));
+      await mock.snapshotAndRollbackSlot(
+        SLOT_A,
+        ethers.id("new_value").padEnd(66, "0"),
+      );
       expect(await mock.readSlot(SLOT_A)).to.equal(VALUE_A);
     });
 
     it("should revert SlotNotTracked when rolling back untracked slot", async () => {
       await expect(
-        mock.rollbackUntrackedSlot(SLOT_A)
+        mock.rollbackUntrackedSlot(SLOT_A),
       ).to.be.revertedWithCustomError(mock, "SlotNotTracked");
     });
   });
@@ -39,7 +42,10 @@ describe("TransientStateSnapshot", () => {
       await mock.setSlot(SLOT_A, VALUE_A);
       await mock.setSlot(SLOT_B, VALUE_B);
 
-      await mock.snapshotAndRollbackSlots([SLOT_A, SLOT_B], ethers.id("new_val").padEnd(66, "0"));
+      await mock.snapshotAndRollbackSlots(
+        [SLOT_A, SLOT_B],
+        ethers.id("new_val").padEnd(66, "0"),
+      );
 
       expect(await mock.readSlot(SLOT_A)).to.equal(VALUE_A);
       expect(await mock.readSlot(SLOT_B)).to.equal(VALUE_B);
@@ -50,7 +56,10 @@ describe("TransientStateSnapshot", () => {
     it("should clear transient tracking after successful execution", async () => {
       await mock.setSlot(SLOT_A, VALUE_A);
 
-      const tx = await mock.snapshotAndRollbackSlot(SLOT_A, ethers.id("new_value").padEnd(66, "0"));
+      const tx = await mock.snapshotAndRollbackSlot(
+        SLOT_A,
+        ethers.id("new_value").padEnd(66, "0"),
+      );
 
       expect(await mock.readSlot(SLOT_A)).to.equal(VALUE_A);
     });
@@ -60,9 +69,9 @@ describe("TransientStateSnapshot", () => {
     it("should revert when the wrapped function reverts", async () => {
       await mock.setSlot(SLOT_A, VALUE_A);
 
-      await expect(
-        mock.executeWithRollback(SLOT_A, true)
-      ).to.be.revertedWith("always revert");
+      await expect(mock.executeWithRollback(SLOT_A, true)).to.be.revertedWith(
+        "always revert",
+      );
 
       expect(await mock.readSlot(SLOT_A)).to.equal(VALUE_A);
     });
@@ -74,7 +83,7 @@ describe("TransientStateSnapshot", () => {
 
       const txPersistent = await mock.persistentBackupAndRestore(
         SLOT_A,
-        ethers.id("tmp").padEnd(66, "0")
+        ethers.id("tmp").padEnd(66, "0"),
       );
       const receiptPersistent = await txPersistent.wait();
       const gasPersistent = receiptPersistent!.gasUsed;
@@ -83,7 +92,7 @@ describe("TransientStateSnapshot", () => {
 
       const txTransient = await mock.snapshotAndRollbackSlot(
         SLOT_A,
-        ethers.id("tmp").padEnd(66, "0")
+        ethers.id("tmp").padEnd(66, "0"),
       );
       const receiptTransient = await txTransient.wait();
       const gasTransient = receiptTransient!.gasUsed;

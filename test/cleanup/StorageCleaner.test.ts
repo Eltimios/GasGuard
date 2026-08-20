@@ -3,19 +3,19 @@
  * Issue #636
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('StorageCleaner', () => {
-  describe('slot clearing', () => {
-    it('should zero out a storage slot', () => {
+describe("StorageCleaner", () => {
+  describe("slot clearing", () => {
+    it("should zero out a storage slot", () => {
       const storage = new Map<string, bigint>();
-      const slot = '0x01';
+      const slot = "0x01";
       storage.set(slot, 42n);
       storage.set(slot, 0n);
       expect(storage.get(slot)).toBe(0n);
     });
 
-    it('should clear a range of slots', () => {
+    it("should clear a range of slots", () => {
       const storage = new Map<string, bigint>();
       const startSlot = 100n;
 
@@ -34,29 +34,29 @@ describe('StorageCleaner', () => {
       }
     });
 
-    it('should not affect adjacent slots', () => {
+    it("should not affect adjacent slots", () => {
       const storage = new Map<string, bigint>();
-      storage.set('1', 100n);
-      storage.set('2', 200n);
-      storage.set('3', 300n);
+      storage.set("1", 100n);
+      storage.set("2", 200n);
+      storage.set("3", 300n);
 
-      storage.set('2', 0n);
+      storage.set("2", 0n);
 
-      expect(storage.get('1')).toBe(100n);
-      expect(storage.get('2')).toBe(0n);
-      expect(storage.get('3')).toBe(300n);
+      expect(storage.get("1")).toBe(100n);
+      expect(storage.get("2")).toBe(0n);
+      expect(storage.get("3")).toBe(300n);
     });
   });
 
-  describe('StorageCleanerConsumer', () => {
-    it('should calculate gas refund per cleared slot', () => {
+  describe("StorageCleanerConsumer", () => {
+    it("should calculate gas refund per cleared slot", () => {
       const EIP3529_REFUND_PER_SLOT = 4800n;
       const slotsCleared = 2n;
       const expectedRefund = EIP3529_REFUND_PER_SLOT * slotsCleared;
       expect(expectedRefund).toBe(9600n);
     });
 
-    it('should track cleared slots', () => {
+    it("should track cleared slots", () => {
       const cleared = new Set<number>();
       cleared.add(1);
       cleared.add(2);
@@ -65,7 +65,7 @@ describe('StorageCleaner', () => {
       expect(cleared.has(3)).toBe(false);
     });
 
-    it('should handle batch completion', () => {
+    it("should handle batch completion", () => {
       const requests = [
         { id: 1, completed: false },
         { id: 2, completed: false },
