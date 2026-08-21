@@ -1,6 +1,7 @@
 pub mod arrays;
 pub mod deployment;
 pub mod encoding;
+pub mod gas;
 pub mod storage;
 pub mod visibility;
 
