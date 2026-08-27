@@ -3,7 +3,9 @@
 //! This module provides a specialized rule engine for analyzing Soroban smart contracts
 //! with rules tailored to Soroban's unique characteristics and gas optimization patterns.
 
+use crate::soroban::loop_cost_analyzer::LoopCostAnalyzerRule;
 use crate::soroban::memory::InefficientBytesAllocationRule;
+use crate::soroban::unbounded_iteration::UnboundedIterationRule;
 use crate::soroban::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
@@ -54,7 +56,9 @@ impl SorobanRuleEngine {
             .add_rule(ClaimExpirationRule::default()) // #117
             .add_rule(AntiFrontRunningRule::default()) // #118
             .add_rule(SecureRandomnessRule::default()) // #119
-            .add_rule(UpgradeVersionTrackingRule::default()); // #123
+            .add_rule(UpgradeVersionTrackingRule::default()) // #123
+            .add_rule(LoopCostAnalyzerRule::default()) // #769
+            .add_rule(UnboundedIterationRule::default()); // #770
     }
 
     /// Analyze Soroban contract source code

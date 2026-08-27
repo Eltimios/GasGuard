@@ -5,9 +5,11 @@
 //! `#[contract]`, `#[contractimpl]`, and `#[contracttype]`.
 
 pub mod analyzer;
+pub mod loop_cost_analyzer;
 pub mod memory;
 pub mod parser;
 pub mod rule_engine;
+pub mod unbounded_iteration;
 
 pub use analyzer::*;
 pub use memory::InefficientBytesAllocationRule;
