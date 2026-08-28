@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ASTNode, ContractDefinition } from '@gasguard/parser';
 
-export interface RedundantReadFinding {
+export interface RedundantWriteFinding {
   ruleId: string;
   severity: 'medium' | 'low';
   message: string;
@@ -9,53 +9,53 @@ export interface RedundantReadFinding {
   recommendation: string;
 }
 
-export interface RedundantReadAnalysisResult {
+export interface RedundantWriteAnalysisResult {
   contractPath: string;
-  findings: RedundantReadFinding[];
+  findings: RedundantWriteFinding[];
   metrics: {
-    redundantReadsDetected: number;
+    redundantWritesDetected: number;
   };
 }
 
 @Injectable()
-export class SorobanRedundantReadAnalyzer {
-  private readonly logger = new Logger(SorobanRedundantReadAnalyzer.name);
+export class SorobanRedundantWriteAnalyzer {
+  private readonly logger = new Logger(SorobanRedundantWriteAnalyzer.name);
 
-  public analyze(contractAst: ContractDefinition, contractPath: string): RedundantReadAnalysisResult {
-    this.logger.debug(`Analyzing redundant storage reads for contract: ${contractPath}`);
+  public analyze(contractAst: ContractDefinition, contractPath: string): RedundantWriteAnalysisResult {
+    this.logger.debug(`Analyzing redundant storage writes for contract: ${contractPath}`);
 
-    const findings: RedundantReadFinding[] = [];
-    let redundantReadsDetected = 0;
+    const findings: RedundantWriteFinding[] = [];
+    let redundantWritesDetected = 0;
 
-    // Track storage read keys within function scopes to detect duplicates without intervening writes
     this.traverseFunctions(contractAst, (functionNode) => {
-      const readKeys = new Set<string>();
-      const modifiedKeys = new Set<string>();
+      const writtenValues = new Map<string, string>(); // key -> value expression/literal representation
 
       this.traverseAst(functionNode, (node) => {
         if (this.isStorageWrite(node)) {
           const key = this.extractStorageKey(node);
+          const value = this.extractStorageValue(node);
+
           if (key) {
-            modifiedKeys.add(key);
-            readKeys.delete(key); // Reset tracking if key is modified (avoids false positives for refreshed values)
+            if (writtenValues.has(key) && writtenValues.get(key) === value) {
+              redundantWritesDetected++;
+              findings.push({
+                ruleId: 'SOROBAN-STOR-05',
+                severity: 'medium',
+                message: `Redundant identical storage write detected for key '${key}' with value '${value}'.`,
+                nodeId: node.id,
+                recommendation: 'Check if the state has already been updated or skip duplicate write operations to save transaction fees.',
+              });
+            } else if (value !== null) {
+              writtenValues.set(key, value);
+            }
           }
         }
 
         if (this.isStorageRead(node)) {
           const key = this.extractStorageKey(node);
           if (key) {
-            if (readKeys.has(key) && !modifiedKeys.has(key)) {
-              redundantReadsDetected++;
-              findings.push({
-                ruleId: 'SOROBAN-STOR-04',
-                severity: 'medium',
-                message: `Redundant storage read detected for key '${key}' within the same execution path.`,
-                nodeId: node.id,
-                recommendation: 'Cache the storage value in a local variable upon the first read and reuse it throughout the function scope.',
-              });
-            } else {
-              readKeys.add(key);
-            }
+            // Reading state can invalidate write optimization assumptions if external changes could occur
+            // but within local synchronous execution scopes, identical consecutive writes are flagged.
           }
         }
       });
@@ -65,7 +65,7 @@ export class SorobanRedundantReadAnalyzer {
       contractPath,
       findings,
       metrics: {
-        redundantReadsDetected,
+        redundantWritesDetected,
       },
     };
   }
@@ -90,15 +90,19 @@ export class SorobanRedundantReadAnalyzer {
     }
   }
 
-  private isStorageRead(node: ASTNode): boolean {
-    return node.type === 'MethodCall' && (node.value === 'get' || node.value === 'has');
-  }
-
   private isStorageWrite(node: ASTNode): boolean {
     return node.type === 'MethodCall' && (node.value === 'set' || node.value === 'put');
   }
 
+  private isStorageRead(node: ASTNode): boolean {
+    return node.type === 'MethodCall' && (node.value === 'get' || node.value === 'has');
+  }
+
   private extractStorageKey(node: ASTNode): string | null {
     return node.metadata?.['storageKey'] ?? node.arguments?.[0]?.value ?? null;
+  }
+
+  private extractStorageValue(node: ASTNode): string | null {
+    return node.metadata?.['storageValue'] ?? node.arguments?.[1]?.value ?? null;
   }
 }
