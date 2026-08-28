@@ -1,5 +1,7 @@
 export * from './storage-rent-check';
 export * from './analyzer/wasm-inspector';
+export * from './collections/vector-ops-check';
+export * from './collections/map-ops-check';
 export * from './analyzer/callgraph-analyzer';
 export * from './analyzer/serialization-analyzer';
 export * from './calls';
