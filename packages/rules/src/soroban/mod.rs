@@ -10,11 +10,21 @@ pub mod memory;
 pub mod parser;
 pub mod rule_engine;
 pub mod unbounded_iteration;
+pub mod event_emission;
+pub mod inefficient_error_construction;
+pub mod memory;
+pub mod parser;
+pub mod rule_engine;
+pub mod unnecessary_cloning;
 
 pub use analyzer::*;
+pub use event_emission::EventEmissionCostRule;
+pub use inefficient_error_construction::InefficientErrorConstructionRule;
 pub use memory::InefficientBytesAllocationRule;
+pub use memory::MemoryAllocationRule;
 pub use parser::*;
 pub use rule_engine::*;
+pub use unnecessary_cloning::UnnecessaryCloningRule;
 
 /// Represents a Soroban contract structure
 #[derive(Debug, Clone, PartialEq)]

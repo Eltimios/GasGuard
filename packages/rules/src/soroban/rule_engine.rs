@@ -6,6 +6,10 @@
 use crate::soroban::loop_cost_analyzer::LoopCostAnalyzerRule;
 use crate::soroban::memory::InefficientBytesAllocationRule;
 use crate::soroban::unbounded_iteration::UnboundedIterationRule;
+use crate::soroban::memory::{InefficientBytesAllocationRule, MemoryAllocationRule};
+use crate::soroban::{
+    EventEmissionCostRule, InefficientErrorConstructionRule, UnnecessaryCloningRule,
+};
 use crate::soroban::{SorobanAnalyzer, SorobanContract, SorobanParser, SorobanResult};
 use crate::{RuleViolation, ViolationSeverity};
 use std::collections::HashMap;
@@ -59,6 +63,10 @@ impl SorobanRuleEngine {
             .add_rule(UpgradeVersionTrackingRule::default()) // #123
             .add_rule(LoopCostAnalyzerRule::default()) // #769
             .add_rule(UnboundedIterationRule::default()); // #770
+            .add_rule(UnnecessaryCloningRule::default()) // #775
+            .add_rule(MemoryAllocationRule::default()) // #776
+            .add_rule(InefficientErrorConstructionRule::default()) // #777
+            .add_rule(EventEmissionCostRule::default()); // #778
             .add_rule(RedundantEventEmissionsRule::default()) // #779
             .add_rule(AuthorizationCostRule::default())       // #780
             .add_rule(ResourceBudgetEstimatorRule::default()) // #781
