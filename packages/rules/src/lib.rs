@@ -26,9 +26,10 @@ pub use unused_state_variables::UnusedStateVariablesRule;
 
 // Export Soroban types specifically
 pub use soroban::{
-    InefficientBytesAllocationRule, SorobanAnalyzer, SorobanContract, SorobanField,
-    SorobanFunction, SorobanImpl, SorobanParam, SorobanParser, SorobanResult, SorobanRuleEngine,
-    SorobanStruct,
+    EventEmissionCostRule, InefficientBytesAllocationRule, InefficientErrorConstructionRule,
+    MemoryAllocationRule, SorobanAnalyzer, SorobanContract, SorobanField, SorobanFunction,
+    SorobanImpl, SorobanParam, SorobanParser, SorobanResult, SorobanRuleEngine, SorobanStruct,
+    UnnecessaryCloningRule,
 };
 
 // Export Vyper types (keeping glob here is fine if Vyper module is clean, but let's be safe)
