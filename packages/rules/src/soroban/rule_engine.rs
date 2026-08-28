@@ -54,7 +54,11 @@ impl SorobanRuleEngine {
             .add_rule(ClaimExpirationRule::default()) // #117
             .add_rule(AntiFrontRunningRule::default()) // #118
             .add_rule(SecureRandomnessRule::default()) // #119
-            .add_rule(UpgradeVersionTrackingRule::default()); // #123
+            .add_rule(UpgradeVersionTrackingRule::default()) // #123
+            .add_rule(RedundantEventEmissionsRule::default()) // #779
+            .add_rule(AuthorizationCostRule::default())       // #780
+            .add_rule(ResourceBudgetEstimatorRule::default()) // #781
+            .add_rule(OptimizationPriorityRule::default());   // #782
     }
 
     /// Analyze Soroban contract source code
@@ -792,6 +796,255 @@ impl SorobanRule for GovernanceVotingRule {
             }
         }
 
+        violations
+    }
+}
+
+// ── Issue #779: Redundant Event Emissions ────────────────────────────────────
+
+/// Detects duplicate `env.events().publish(...)` calls within the same function.
+pub struct RedundantEventEmissionsRule {
+    enabled: bool,
+}
+
+impl Default for RedundantEventEmissionsRule {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
+impl SorobanRule for RedundantEventEmissionsRule {
+    fn id(&self) -> &str { "soroban-redundant-event-emissions" }
+    fn name(&self) -> &str { "Redundant Event Emissions" }
+    fn description(&self) -> &str {
+        "Detects identical event emissions in the same function that waste transaction resources"
+    }
+    fn severity(&self) -> ViolationSeverity { ViolationSeverity::Medium }
+    fn is_enabled(&self) -> bool { self.enabled }
+    fn set_enabled(&mut self, enabled: bool) { self.enabled = enabled; }
+
+    fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
+        let mut violations = Vec::new();
+        for implementation in &contract.implementations {
+            for function in &implementation.functions {
+                let source = &function.raw_definition;
+                let count = source.matches("env.events().publish").count();
+                if count > 1 {
+                    violations.push(RuleViolation {
+                        rule_name: self.id().to_string(),
+                        description: format!(
+                            "Function '{}' emits {} events — check for duplicates with identical topics/payloads",
+                            function.name, count
+                        ),
+                        suggestion: "Consolidate duplicate event emissions into a single publish call to reduce resource overhead.".to_string(),
+                        line_number: function.line_number,
+                        column_number: 0,
+                        variable_name: function.name.clone(),
+                        severity: self.severity(),
+                    });
+                }
+            }
+        }
+        violations
+    }
+}
+
+// ── Issue #780: Authorization Cost Analyzer ──────────────────────────────────
+
+/// Detects repeated or loop-embedded authorization checks.
+pub struct AuthorizationCostRule {
+    enabled: bool,
+}
+
+impl Default for AuthorizationCostRule {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
+impl SorobanRule for AuthorizationCostRule {
+    fn id(&self) -> &str { "soroban-authorization-cost" }
+    fn name(&self) -> &str { "Authorization Cost Analyzer" }
+    fn description(&self) -> &str {
+        "Detects repeated or loop-embedded authorization checks that inflate execution costs"
+    }
+    fn severity(&self) -> ViolationSeverity { ViolationSeverity::Medium }
+    fn is_enabled(&self) -> bool { self.enabled }
+    fn set_enabled(&mut self, enabled: bool) { self.enabled = enabled; }
+
+    fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
+        let mut violations = Vec::new();
+        for implementation in &contract.implementations {
+            for function in &implementation.functions {
+                let source = &function.raw_definition;
+                let auth_count = source.matches("require_auth").count()
+                    + source.matches("require_auth_for_args").count();
+
+                // Flag functions with more than one distinct auth call
+                if auth_count > 2 {
+                    violations.push(RuleViolation {
+                        rule_name: self.id().to_string(),
+                        description: format!(
+                            "Function '{}' contains {} authorization checks — consider caching",
+                            function.name, auth_count
+                        ),
+                        suggestion: "Perform a single authorization check at the top of the function and cache the result.".to_string(),
+                        line_number: function.line_number,
+                        column_number: 0,
+                        variable_name: function.name.clone(),
+                        severity: self.severity(),
+                    });
+                }
+
+                // Flag auth inside loops
+                let loop_keywords = ["for ", "while ", "loop {"];
+                let has_loop = loop_keywords.iter().any(|kw| source.contains(kw));
+                if has_loop && auth_count >= 1 {
+                    violations.push(RuleViolation {
+                        rule_name: self.id().to_string(),
+                        description: format!(
+                            "Function '{}' performs authorization inside a loop",
+                            function.name
+                        ),
+                        suggestion: "Move the authorization check outside the loop to avoid repeating it per iteration.".to_string(),
+                        line_number: function.line_number,
+                        column_number: 0,
+                        variable_name: function.name.clone(),
+                        severity: ViolationSeverity::High,
+                    });
+                }
+            }
+        }
+        violations
+    }
+}
+
+// ── Issue #781: Resource Budget Estimator ────────────────────────────────────
+
+/// Reports an aggregated resource impact score based on detected pattern density.
+pub struct ResourceBudgetEstimatorRule {
+    enabled: bool,
+    /// Threshold: if a function has more than this many storage + loop ops, warn.
+    impact_threshold: usize,
+}
+
+impl Default for ResourceBudgetEstimatorRule {
+    fn default() -> Self {
+        Self { enabled: true, impact_threshold: 5 }
+    }
+}
+
+impl SorobanRule for ResourceBudgetEstimatorRule {
+    fn id(&self) -> &str { "soroban-resource-budget" }
+    fn name(&self) -> &str { "Resource Budget Estimator" }
+    fn description(&self) -> &str {
+        "Aggregates detected patterns to estimate relative CPU, memory, ledger, and fee pressure"
+    }
+    fn severity(&self) -> ViolationSeverity { ViolationSeverity::Info }
+    fn is_enabled(&self) -> bool { self.enabled }
+    fn set_enabled(&mut self, enabled: bool) { self.enabled = enabled; }
+
+    fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
+        let mut violations = Vec::new();
+        for implementation in &contract.implementations {
+            for function in &implementation.functions {
+                let source = &function.raw_definition;
+
+                let storage_ops = source.matches(".get(").count()
+                    + source.matches(".set(").count()
+                    + source.matches(".remove(").count();
+                let loop_ops = source.matches("for ").count()
+                    + source.matches("while ").count()
+                    + source.matches("loop {").count();
+                let event_ops = source.matches("events().publish").count();
+                let auth_ops = source.matches("require_auth").count();
+
+                let total = storage_ops + loop_ops + event_ops + auth_ops;
+                if total >= self.impact_threshold {
+                    violations.push(RuleViolation {
+                        rule_name: self.id().to_string(),
+                        description: format!(
+                            "Function '{}' has high resource pressure: {} storage op(s), {} loop(s), {} event(s), {} auth check(s)",
+                            function.name, storage_ops, loop_ops, event_ops, auth_ops
+                        ),
+                        suggestion: "Review the function for combined CPU, ledger, and fee impact. Consider splitting into smaller, targeted operations.".to_string(),
+                        line_number: function.line_number,
+                        column_number: 0,
+                        variable_name: function.name.clone(),
+                        severity: self.severity(),
+                    });
+                }
+            }
+        }
+        violations
+    }
+}
+
+// ── Issue #782: Optimization Priority Engine ─────────────────────────────────
+
+/// Assigns a priority tag to existing violations so callers can sort by impact.
+/// This rule re-scores violations produced by other rules; here it surfaces
+/// functions whose combined violation density is highest.
+pub struct OptimizationPriorityRule {
+    enabled: bool,
+}
+
+impl Default for OptimizationPriorityRule {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
+impl SorobanRule for OptimizationPriorityRule {
+    fn id(&self) -> &str { "soroban-optimization-priority" }
+    fn name(&self) -> &str { "Optimization Priority Engine" }
+    fn description(&self) -> &str {
+        "Ranks functions by optimization opportunity density to surface the highest-impact fixes first"
+    }
+    fn severity(&self) -> ViolationSeverity { ViolationSeverity::Info }
+    fn is_enabled(&self) -> bool { self.enabled }
+    fn set_enabled(&mut self, enabled: bool) { self.enabled = enabled; }
+
+    fn apply(&self, contract: &SorobanContract) -> Vec<RuleViolation> {
+        let mut violations = Vec::new();
+        for implementation in &contract.implementations {
+            // Build a simple density score per function
+            let mut scored: Vec<(usize, &crate::soroban::SorobanFunction)> = implementation
+                .functions
+                .iter()
+                .map(|f| {
+                    let src = &f.raw_definition;
+                    let score = src.matches(".get(").count() * 2
+                        + src.matches(".set(").count() * 2
+                        + src.matches("for ").count() * 3
+                        + src.matches("while ").count() * 3
+                        + src.matches("require_auth").count() * 2
+                        + src.matches("events().publish").count();
+                    (score, f)
+                })
+                .collect();
+
+            // Sort descending
+            scored.sort_by(|a, b| b.0.cmp(&a.0));
+
+            // Report the top function if its score is meaningful
+            if let Some((score, top_fn)) = scored.first() {
+                if *score >= 4 {
+                    violations.push(RuleViolation {
+                        rule_name: self.id().to_string(),
+                        description: format!(
+                            "Function '{}' has the highest optimization priority in impl '{}' (score {})",
+                            top_fn.name, implementation.target, score
+                        ),
+                        suggestion: "Address this function first: it has the greatest combined resource impact across storage, loops, events, and authorization.".to_string(),
+                        line_number: top_fn.line_number,
+                        column_number: 0,
+                        variable_name: top_fn.name.clone(),
+                        severity: self.severity(),
+                    });
+                }
+            }
+        }
         violations
     }
 }
