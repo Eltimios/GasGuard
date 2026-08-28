@@ -10,3 +10,5 @@ export * from './events';
 export * from './authorization';
 export * from './budget';
 export * from './prioritization';
+export * from './functions';
+export * from './resources';
